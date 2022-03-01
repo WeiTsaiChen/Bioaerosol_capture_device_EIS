@@ -1,0 +1,40 @@
+//***********************************************************************************************************************
+//
+//  Copyright (C) 2009, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @file 	 BTC.README
+//
+//! @author  Willman Chen
+//
+//! @date 	 2009/06/26
+//
+//  @brief 	 BTC 軟體模組說明
+//
+//**********************************************************************************************************************
+
+1. 模組功能說明:
+	BTC 模組提供藉由 Basic Timer 來提供軟體 Timer 的功能
+
+2. 模組平台: 
+	PIC32MX
+
+3. 關聯模組: 
+	目前無必須依賴之模組
+
+4. 模組資源:
+   1.需要的 MCU 功能 :  None
+   2.需要的 I/O		 :  None
+   3.需要的介面		 :	None
+   4.需要的記憶體    :  13 Bytes
+
+
+5. 使用方式: 
+	執行 BTC_INIT_API()之後,即會依照在 btc_idef.h 檔中設定的各TIMER 觸發時間,做舉起旗標之動作,
+    使用者已可透過
+    BTC_SET_SEC_CNT_API()
+	BTC_GET_SEC_CNT_API()
+	BTC_GET_HALF_SEC_CNT_API()
+	BTC_SET_HALF_CNT_API()
+	BTC_GET_QUARTER_SEC_CNT_API()
+	BTC_SET_QUARTER_CNT_API()
+    來提供給 UI 來使用
