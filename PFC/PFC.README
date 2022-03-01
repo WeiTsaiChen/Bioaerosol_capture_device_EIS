@@ -1,0 +1,40 @@
+//***********************************************************************************************************************
+//
+//  Copyright (C) 2009, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @file 	 PFC.README
+//
+//! @author  Willman Chen
+//
+//! @date 	 2009/07/06
+//
+//  @brief 	 PFC 軟體模組說明
+//
+//**********************************************************************************************************************
+
+1. 模組功能說明:
+	Product Function Control 模組,主要負責產品的流程控制.
+
+2. 模組平台: 
+	Any where
+
+3. 關聯模組: 
+   None
+
+4. 模組資源:
+   1.需要的 MCU 功能 :  None
+   2.需要的 I/O		:  None
+	3.需要的介面		:	None
+   4.需要的記憶體    :  視系統變數而定
+
+
+5. 使用方式: 
+	執行 PFC_INIT_API()之後,使用者即可使用以下 API :
+	PFC_MAIN_LOOP_API()  						: 等於一般 FIRMWARE 中的 while loop
+	PFC_GET_SYS_VARS_API(index)   			: 利用索引值取得系統變數
+	PFC_SET_SYS_VARS_API(index,value)   	: 利用索引值設定系統變數
+	PFC_GET_MAX_VALUE_BY_INDEX_API(index)  : 利用索引值取得系統變數的最大值範圍
+	PFC_GET_MIN_VALUE_BY_INDEX_API(index)  : 利用索引值取得系統變數的最小值範圍
+	PFC_MAKE_EEPROM_ZERO_CHECKSUM_API()    : 計算系統變數的 Zero - Checksum  
+	PFC_RESTORE_EEPROM_API()               : 將系統變數存到 EEPROM ( 須依賴 EEPROM 模組 )
+  

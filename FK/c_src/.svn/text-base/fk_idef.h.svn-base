@@ -1,0 +1,229 @@
+#ifndef FK_IDEF_H
+#define FK_IDEF_H
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @file 		 fk_idef.h
+//
+//! @author 	 Willman Chen
+//
+//! @date 		 2010/10/25
+//
+//  @brief 		 Here define internal constant
+//
+//**********************************************************************************************************************
+//**********************************************************************************************************************
+//
+// E X T E R N A L   G L O B A L   C O N S T A N C E   /   V A R I A B L E S   I N   E E P R O M
+//
+//**********************************************************************************************************************
+// IO Redeifne
+enum
+{
+    FK_GPIO_PIN_HIGH,
+    FK_GPIO_PIN_LOW,
+    FK_GPIO_PIN_TOGGLE,
+    FK_GPIO_ALL,
+};
+
+enum
+{
+    FK_GPIO_ADC_TYPE,
+    FK_GPIO_IO_TYPE,
+    FK_GPIO_ALTERNATE_FUNCTION_TYPE,
+    FK_GPIO_TIMER_TYPE,
+    FK_GPIO_SPI_TYPE,
+    FK_GPIO_I2C_TYPE,
+    FK_GPIO_UART_TYPE,
+};
+
+#define FK_PHERIPH_CLKA                 RCC_APB2Periph_GPIOA
+#define FK_PHERIPH_CLKB                 RCC_APB2Periph_GPIOB
+#define FK_PHERIPH_CLKC                 RCC_APB2Periph_GPIOC
+#define FK_PHERIPH_CLKD                 RCC_APB2Periph_GPIOD
+#define FK_PHERIPH_CLKE                 RCC_APB2Periph_GPIOE
+#define FK_PHERIPH_CLKF                 RCC_APB2Periph_GPIOF
+#define FK_PHERIPH_CLKG                 RCC_APB2Periph_GPIOG
+
+#define FK_PORTSOURCEA                  GPIO_PortSourceGPIOA
+#define FK_PORTSOURCEB                  GPIO_PortSourceGPIOB
+#define FK_PORTSOURCEC                  GPIO_PortSourceGPIOC
+#define FK_PORTSOURCED                  GPIO_PortSourceGPIOD
+#define FK_PORTSOURCEE                  GPIO_PortSourceGPIOE
+#define FK_PORTSOURCEF                  GPIO_PortSourceGPIOF
+#define FK_PORTSOURCEG                  GPIO_PortSourceGPIOG
+
+#define FK_PIN_SOURCE0                  GPIO_PinSource0
+#define FK_PIN_SOURCE1                  GPIO_PinSource1
+#define FK_PIN_SOURCE2                  GPIO_PinSource2
+#define FK_PIN_SOURCE3                  GPIO_PinSource3
+#define FK_PIN_SOURCE4                  GPIO_PinSource4
+#define FK_PIN_SOURCE5                  GPIO_PinSource5
+#define FK_PIN_SOURCE6                  GPIO_PinSource6
+#define FK_PIN_SOURCE7                  GPIO_PinSource7
+#define FK_PIN_SOURCE8                  GPIO_PinSource8
+#define FK_PIN_SOURCE9                  GPIO_PinSource9
+#define FK_PIN_SOURCE10                 GPIO_PinSource10
+#define FK_PIN_SOURCE11                 GPIO_PinSource11
+#define FK_PIN_SOURCE12                 GPIO_PinSource12
+#define FK_PIN_SOURCE13                 GPIO_PinSource13
+#define FK_PIN_SOURCE14                 GPIO_PinSource14
+#define FK_PIN_SOURCE15                 GPIO_PinSource15
+
+#define FK_EXTI0    			EXTI_Line0
+#define FK_EXTI1    			EXTI_Line1
+#define FK_EXTI2    			EXTI_Line2
+#define FK_EXTI3    			EXTI_Line3
+#define FK_EXTI4    			EXTI_Line4
+#define FK_EXTI5    			EXTI_Line5
+#define FK_EXTI6    			EXTI_Line6
+#define FK_EXTI7    			EXTI_Line7
+#define FK_EXTI8    			EXTI_Line8
+#define FK_EXTI9    			EXTI_Line9
+#define FK_EXTI10    			EXTI_Line10
+#define FK_EXTI11    			EXTI_Line11
+#define FK_EXTI12    			EXTI_Line12
+#define FK_EXTI13    			EXTI_Line13
+#define FK_EXTI14    			EXTI_Line14
+#define FK_EXTI15    			EXTI_Line15
+#define FK_EXTI_TOTAL                   16
+
+#define FK_EXTI_PVD    		        EXTI_Line16
+#define FK_EXTI_RTC    		        EXTI_Line17
+#define FK_EXTI_USB    		        EXTI_Line18
+#define FK_EXTI_ETHERNET_WAKEUP    	EXTI_Line19
+
+#define FK_EXTI_IRQ0	                EXTI0_IRQn
+#define FK_EXTI_IRQ1	                EXTI1_IRQn
+#define FK_EXTI_IRQ2	                EXTI2_IRQn
+#define FK_EXTI_IRQ3	                EXTI3_IRQn
+#define FK_EXTI_IRQ4                    EXTI4_IRQn
+#define FK_EXTI_IRQ9_5                  EXTI9_5_IRQn
+#define FK_EXTI_IRQ15_10                EXTI15_10_IRQn
+#define FK_RTC_DATA_TOTAL               42
+
+#define FK_I2C_SPEED_100K		100000
+#define FK_I2C_SPEED_200K		200000
+#define	FK_I2C_SPEED_300K		300000
+#define	FK_I2C_SPEED_400K		400000
+
+#define FK_DMA_TOTAL            12
+
+enum
+{
+    FK_INTERRUPT5_INPUT_CAPTURE,  // TIMER 1
+    FK_INTERRUPT1_FUNC_ONCE,      // TIMER 2
+    FK_INTERRUPT2_FUNC_ONCE,      // TIMER 3
+    FK_INTERRUPT3_FUNC_CONTINUE,  // TIMER 4
+    FK_INTERRUPT4_FUNC_CONTINUE,  // TIMER 5
+    FK_INTERRUPT_FUNC_TOTAL,
+};
+
+#define FK_UART_SETS            3
+enum
+{
+    FK_UART1_DEFAULT,
+    FK_UART1_REMAP,
+    FK_UART2_DEFAULT,
+    FK_UART2_REMAP,
+    FK_UART3_DEFAULT,
+    FK_UART3_REMAP,
+    FK_UART_TOTAL,
+};
+
+enum
+{
+    FK_UART_POLLING_MODE,
+    FK_UART_INTERRUPT_MODE,
+    FK_UART_DMA_MODE,
+    FK_UART_MODE_TOTAL,
+};
+
+enum
+{
+    FK_ADC_POLLING_FUNC,
+    FK_ADC_DMA_FUNC,
+    FK_ADC_INTERRUPT_FUNC,
+    FK_ADC_DUAL_DMA_FUNC,
+    FK_ADC_DUAL_INTERRUPT_FUNC,
+};
+
+enum
+{
+    FK_ADC_CHANNEL0,
+    FK_ADC_CHANNEL1,
+    FK_ADC_CHANNEL2,
+    FK_ADC_CHANNEL3,
+    FK_ADC_CHANNEL4,
+    FK_ADC_CHANNEL5,
+    FK_ADC_CHANNEL6,
+    FK_ADC_CHANNEL7,
+    FK_ADC_CHANNEL8,
+    FK_ADC_CHANNEL9,
+    FK_ADC_CHANNEL10,
+    FK_ADC_CHANNEL11,
+    FK_ADC_CHANNEL12,
+    FK_ADC_CHANNEL13,
+    FK_ADC_CHANNEL14,
+    FK_ADC_CHANNEL15,
+    FK_ADC_Temperature,
+    FK_ADC_Vrefint,
+    FK_ADC_TOTAL,
+};
+
+enum
+{
+    FK_ADC_SET1,
+    FK_ADC_SET2,
+    FK_ADC_SET3,
+    FK_ADC_SET_TOTAL,
+};
+
+enum
+{
+    FK_ADC_SINGLE_MODE,
+    FK_ADC_CONTINUOUS_MODE,
+    FK_ADC_MODE_TOTAL,
+};
+
+enum
+{
+    FK_DMA_CHANNEL1,
+    FK_DMA_CHANNEL2,
+    FK_DMA_CHANNEL3,
+    FK_DMA_CHANNEL4,
+    FK_DMA_CHANNEL5,
+    FK_DMA_CHANNEL6,
+    FK_DMA_CHANNEL7,
+    FK_DMA_CHANNEL8,
+    FK_DMA_CHANNEL9,
+    FK_DMA_CHANNEL10,
+    FK_DMA_CHANNEL11,
+    FK_DMA_CHANNEL12,
+    FK_DMA_CHANNEL_TOTAL,
+};
+
+enum
+{
+    FK_DAC_CHANNEL1,
+    FK_DAC_CHANNEL2,
+    FK_DAC_TOTAL,
+};
+
+enum
+{
+    FK_I2C1,
+    FK_I2C2,
+    FK_I2C_TOTAL,
+};
+
+enum
+{
+    FK_SPI1,
+    FK_SPI2,
+    FK_SPI3,
+    FK_SPI_TOTAL,
+};
+
+#endif		// FK_IDEF_H 

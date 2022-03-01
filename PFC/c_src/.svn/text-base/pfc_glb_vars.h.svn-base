@@ -1,0 +1,161 @@
+#ifndef PFC_GLB_VARS_H
+#define PFC_GLB_VARS_H
+//**********************************************************************************************************************
+//
+// Copyright (C) 2009, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @file 	 pfc_glb_vars.h
+//
+//! @author	 Willman Chen
+//
+//! @date 	 2009/06/19
+//
+// @brief 	 Here declare globe variable
+//
+//**********************************************************************************************************************
+//**********************************************************************************************************************
+//
+// I N C L U D E   F I L E S   /   E X T E R N A L   V A R I A B L E S
+//
+//**********************************************************************************************************************
+#include "pfc_idef.h"
+#include "..\pfc_udef.h"
+//**********************************************************************************************************************
+//
+// E X T E R N A L   V A R I A B L E   A L L O C
+//
+//**********************************************************************************************************************
+#ifdef PFC_ALLOC
+#define EXTERNAL
+#else
+#define EXTERNAL extern
+#endif
+
+typedef struct
+{
+    UINT16    modbus_id;
+    UINT16    modbus_baudrate;
+    UINT16    modbus_bits:4;
+    UINT16    modbus_stop_bits:2;
+    UINT16    modbus_parity:2;
+    UINT16    modbus_mode:1;
+    UINT16    modbus_change:1;
+    UINT16    null:6;
+} STC_PFC_MODBUS_SETTING;
+
+typedef struct
+{
+    UINT16   dac_3_dot_5_ma;			    //  The 3.5 ma current value
+    UINT16   dac_4_ma;			            //  The 4 ma current value
+    UINT16   dac_12_ma;				    //  The 12 ma current value
+    UINT16   dac_20_ma;                              //  The 20 ma current value
+    UINT16   dac_22_ma;				    //	The 22 ma current value
+    UINT16   dac_4_ma_offset;			    //  The 4 ma user offset value
+    UINT16   dac_20_ma_offset;			    //  The 20 ma user offset value
+    UINT16   current_lock;
+    UINT16   current_lock_value;
+    UINT16   current_now;
+    FLOAT32  current_ma;
+} STC_PFC_CURRENT_SETTING;
+
+typedef struct
+{
+    UINT16   save_system_var_to_eeprom;
+    UINT16   save_calibration_setting;
+    UINT16   load_default_setting;
+    UINT16   load_firmware_setting;
+} STC_PFC_SETTING_FLAG;
+
+typedef struct
+{
+    UINT16              primary_count;
+    UINT16              secondary_count;
+    UINT8               tag[6];
+    UINT8               descriptor[12];
+    UINT8               message[24];
+    UINT8               long_tag[32];
+    UINT16              damp_time;
+    UINT8               final_assembly_number[4];
+    UINT8               primary_flag;
+    UINT8               secondary_flag;
+    UINT8               primary_value_unit;
+    UINT8               polling_address;
+    UINT8               loop_current_mode;
+} STC_PFC_HART_SETTING;
+
+typedef struct
+{
+    UINT8    second;
+    UINT8    minute;
+    UINT8    hour;
+    UINT8    day;
+    UINT8    month;
+    UINT8    year;   // start from 1900
+} STC_PFC_CALANDAR_STATUS;
+
+typedef struct
+{
+    UINT16                   key_task:1;
+    UINT16                   uif_task:1;
+    UINT16                   null:14;
+    FLOAT32                  display_value;             //  display_value
+    FLOAT32                  display_percentage;
+    FLOAT32                  temperature;
+} STC_PFC_STATUS;
+
+typedef struct
+{
+    UINT16   product_type;
+    UINT16   product_number;
+    UINT16   product_version;
+} STC_PFC_AUTO_ID;
+
+typedef struct
+{
+    UINT16   modbus:1;
+    UINT16   hart:1;
+    UINT16   profibus:1;
+    UINT16   zigbee:1;
+    UINT16   hart_wireless:1;
+    UINT16   reserved:11;
+} STC_PFC_COMMUCATION_INTERFACE;
+
+//! @brief The System variables struct
+typedef struct
+{
+    STC_PFC_COMMUCATION_INTERFACE  communcation_setting;
+    STC_PFC_SETTING_FLAG           setting_flag;
+    STC_PFC_CURRENT_SETTING        current_setting;
+    STC_PFC_MODBUS_SETTING         modbus_setting;
+    STC_PFC_CALANDAR_STATUS        calendar;
+    STC_PFC_HART_SETTING           hart;
+    FLOAT32                        display_high;
+    FLOAT32                        display_low;
+    FLOAT32                        display_high_limit;
+    FLOAT32                        display_low_limit;
+    UINT8                          filter_level;
+    UINT8                          language;
+    UINT32                         serial_number;
+    UINT16                         zero_chksum;      //  the zero checksum,please always place this variable at the last one in this structure.
+} STC_SYSTEM_INFO;
+//**********************************************************************************************************************
+//
+// D E C L A R E   G L O B E   V A R I A B L E
+//
+//**********************************************************************************************************************
+//! @brief The System status flag
+EXTERNAL STC_PFC_STATUS             	gs_pfc_status;
+//! @brief The System Variables
+EXTERNAL STC_SYSTEM_INFO            	gs_pfc_vars;
+//! @brief The System Product Information
+extern STC_PFC_AUTO_ID                  gs_pfc_auto_id;
+extern const UINT8                      gt_pfc_days_of_month[12];
+//**********************************************************************************************************************
+//
+// F U N C T I O N   P R O T O T Y P E S
+//
+//**********************************************************************************************************************
+void pfc_glb_vars_init();
+void pfc_glb_vars_load_default();
+#undef EXTERNAL
+#endif		// PFC_GLB_VARS_H 

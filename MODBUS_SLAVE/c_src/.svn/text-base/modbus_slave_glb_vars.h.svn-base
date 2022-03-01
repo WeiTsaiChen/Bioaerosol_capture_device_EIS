@@ -1,0 +1,119 @@
+#ifndef MODBUS_SLAVE_GLB_VARS_H
+#define MODBUS_SLAVE_GLB_VARS_H
+//**********************************************************************************************************************
+//
+// Copyright (C) 2009, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @file 		 modbus_slave_glb_vars.h
+//
+//! @author 	 Willman Chen
+//
+//! @date 		 2009/11/10
+//
+//  @brief 		 Here declare globe variable
+//
+//**********************************************************************************************************************
+//**********************************************************************************************************************
+//
+// I N C L U D E   F I L E S   /   E X T E R N A L   V A R I A B L E S
+//
+//**********************************************************************************************************************
+#include "modbus_slave_idef.h"
+#include "..\modbus_slave_udef.h"
+//**********************************************************************************************************************
+//
+// E X T E R N A L   V A R I A B L E   A L L O C
+//
+//**********************************************************************************************************************
+#ifdef MODBUS_SLAVE_ALLOC
+#define EXTERNAL
+#else
+#define EXTERNAL extern
+#endif
+typedef struct
+{
+    UINT8	id_code;
+    UINT16	max_register;
+    UINT16  max_value;
+    UINT8	return_byte_cnt;
+    UINT8   command_length;
+    void    (*action)();
+    UINT8   supported;
+} STC_MODBUS_SLAVE_COMMAND_INFO;
+
+typedef struct
+{
+    UINT8   device_id;
+    UINT8	function_code;
+    UINT8	register_address_h;
+    UINT8	register_address_l;
+    UINT8	register_value_h;
+    UINT8	register_value_l;
+    UINT16	crc_check;
+} STC_MODBUS_SLAVE_READ_WRITE_REGISTER_PACKAGE;
+
+typedef struct
+{
+    UINT8   device_id;
+    UINT8	function_code;
+    UINT8	register_address_h;
+    UINT8	register_address_l;
+    UINT8	register_value_h;
+    UINT8	register_value_l;
+    UINT8       byte_count;
+    UINT8	data;
+} STC_MODBUS_SLAVE_WRITE_MULTI_REGISTER_CMD_PACKAGE;
+
+typedef struct
+{
+    UINT8   device_id;
+    UINT8	function_code;
+    UINT8	register_address_h;
+    UINT8	register_address_l;
+    UINT8	byte_count_h;
+    UINT8	byte_count_l;
+    UINT16  crc_check;
+} STC_MODBUS_SLAVE_WRITE_MULTI_REGISTER_RESPONSE_PACKAGE;
+
+typedef struct
+{
+    UINT8	device_address;
+    UINT8	function_code;
+    UINT8	byte_count;
+    UINT8   data;
+} STC_MODBUS_SLAVE_RESPONSE_READ_HOLDING_REGISTER_PACKAGE;
+
+typedef struct
+{
+    UINT8   device_address;
+    UINT8	error_code;
+    UINT8	exception_code;
+    UINT16  crc_check;
+} STC_MODBUS_SLAVE_ERROR_PACKAGE;
+#define MODBUS_SLAVE_ERROR_PACKAGE_LEN			5
+//**********************************************************************************************************************
+//
+// D E C L A R E   G L O B E   V A R I A B L E
+//
+//**********************************************************************************************************************
+EXTERNAL UINT8 					gb_modbus_slave_buffer[MODBUS_SLAVE_MAX_BUFFER_SIZE];
+EXTERNAL UINT16					gb_modbus_slave_ptr;
+EXTERNAL UINT16					gb_modbus_slave_response_length;
+EXTERNAL STC_MODBUS_SLAVE_COMMAND_INFO*		gs_modbus_slave_package_ptr;
+EXTERNAL STC_MODBUS_SLAVE_ERROR_PACKAGE		gs_modbus_slave_error_package;
+extern const STC_MODBUS_SLAVE_COMMAND_INFO 	gt_modbus_slave_valid_function[MODBUS_SLAVE_MAX_COMMAND];
+extern const UINT16*                            gt_modbus_slave_read_write[MODBUS_SLAVE_READ_WRITE_NUM];
+extern const UINT16*                            gt_modbus_slave_readonly[MODBUS_SLAVE_READONLY_NUM];
+extern const UINT16*                            gt_modbus_slave_header[MODBUS_SLAVE_HEADER_NUM];
+extern const UINT16                             gt_modbus_slave_ddf_file[MODBUS_SLAVE_DDF_LEN];
+EXTERNAL UINT8                                  gb_modbus_slave_reset_value;
+EXTERNAL UINT8		                        gb_modbus_slave_state;
+EXTERNAL UINT16					gb_modbus_slave_char_ptr;
+//**********************************************************************************************************************
+//
+// F U N C T I O N   P R O T O T Y P E S
+//
+//**********************************************************************************************************************
+void modbus_slave_glb_vars_init();
+#undef EXTERNAL
+#endif		// MODBUS_SLAVE_GLB_VARS_H 

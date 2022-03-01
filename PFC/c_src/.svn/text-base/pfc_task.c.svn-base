@@ -1,0 +1,174 @@
+//**********************************************************************************************************************
+//
+// Copyright (C) 2009, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @file 	 pfc_task.c
+//
+//! @author	 Willman Chen
+//
+//! @date 	 2009/06/19
+//
+// @brief 	 Task Subroutine
+//
+//**********************************************************************************************************************
+//**********************************************************************************************************************
+//
+// I N C L U D E   F I L E S   /   E X T E R N A L   V A R I A B L E S
+//
+//**********************************************************************************************************************
+#include "..\drv_src\pfc_drv.h"
+#include "pfc_glb_vars.h"
+#include "pfc_task.h"
+#include "pfc_idef.h"
+#include "..\pfc_udef.h"
+//**********************************************************************************************************************
+//
+// Copyright (C) 2009, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 pfc_set_loop_current_in_mA
+//
+//! @author	 Willman Chen
+//
+//! @date 	 2009/06/19
+//
+//! @brief 	 Please use this function for setting loop current.
+//
+//**********************************************************************************************************************
+void pfc_set_loop_current_in_mA(FLOAT32 mA)
+{
+    FLOAT32 mm=(FLOAT32)(PFC_20_MA-PFC_4_MA)/16.0;
+    FLOAT32 step=mA-4.0;
+    FLOAT32 temp=((FLOAT32)PFC_4_MA)+step*mm;
+    PFC_SET_LOOP_CURRENT_IN_DAC_API((UINT16)temp);
+}
+//**********************************************************************************************************************
+//
+// Copyright (C) 2009, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 pfc_make_zero_checksum
+//
+//! @author	 Willman Chen
+//
+//! @date 	 2009/06/19
+//
+//! @brief 	 This function will make the zero-checksum of an array,and fill the zero-checksum value in the last two-bytes.
+//
+//**********************************************************************************************************************
+void pfc_make_zero_checksum(UINT16 *array,UINT32 len)
+{
+    UINT16 chksum=0;
+    UINT32 i;
+    UINT16 *data=array;
+    len=(len-2)/2;
+    for (i=0; i<len; i++)
+    {
+        chksum+=*data++;
+    }
+    *(data)=(~chksum+1);
+}
+
+//**********************************************************************************************************************
+//
+// Copyright (C) 2009, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 pfc_add_sec
+//
+//! @author	 Willman Chen
+//
+//! @date 	 2009/06/19
+//
+//! @brief 	 This function will make the zero-checksum of an array,and fill the zero-checksum value in the last two-bytes.
+//
+//**********************************************************************************************************************
+void pfc_add_sec()
+{
+    if (++PFC_SEC>=60)
+    {
+      PFC_SEC=0;
+      if (++PFC_MIN>=60)
+      {
+         PFC_MIN=0;
+         if (++PFC_HOUR>=24)
+         {
+            PFC_HOUR=0;
+            if (++PFC_DAY>gt_pfc_days_of_month[PFC_MONTH])
+            {
+                PFC_DAY=1;
+                if (++PFC_MONTH>12)
+                {
+                    PFC_MONTH=1;
+                    ++PFC_YEAR;
+                }
+            }
+         }
+      }
+      
+    }
+}
+
+//**********************************************************************************************************************
+//
+// Copyright (C) 2009, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 pfc_task
+//
+//! @author	 Willman Chen
+//
+//! @date 	 2009/06/19
+//
+//! @brief 	 This function will make the zero-checksum of an array,and fill the zero-checksum value in the last two-bytes.
+//
+//**********************************************************************************************************************
+void pfc_task()
+{
+#if MAIN_USE_KEY == 1
+    if (PFC_KEY_TASK_CHK_API())
+    {
+        PFC_KEY_TASK_API();
+        PFC_CLR_KEY_TASK_API();
+    }
+#endif
+#if MAIN_USE_UIF == 1
+    if (PFC_UIF_TASK_CHK_API())
+    {
+        UIF_TASK_API();
+        PFC_CLR_UIF_TASK_API();
+    }
+#endif
+    if (PFC_LOAD_FIRMWARE_SETTING)
+    {
+        pfc_glb_vars_load_default();
+        PFC_MAKE_EEPROM_ZERO_CHECKSUM_API();
+        PFC_RESTORE_USER_DATA_API();
+        PFC_RESTORE_FACTORY_DATA_API();
+    }
+    if (PFC_LOAD_DEFAULT_SETTING)
+    {
+        PFC_READ_FACTORY_DATA_API();
+        PFC_RESTORE_USER_DATA_API();
+    }
+    if (PFC_SAVE_CALIBRATION_SETTING)
+    {
+        PFC_SAVE_CALIBRATION_SETTING=0;
+        PFC_MAKE_EEPROM_ZERO_CHECKSUM_API();
+        PFC_RESTORE_FACTORY_DATA_API();
+    }
+    if (PFC_SAVE_SYSTEM_VAR_TO_EEPROM)
+    {
+        PFC_SAVE_SYSTEM_VAR_TO_EEPROM=0;
+        PFC_SAVE_CALIBRATION_SETTING=0;
+        PFC_MAKE_EEPROM_ZERO_CHECKSUM_API();
+        PFC_RESTORE_USER_DATA_API();
+    }
+    UINT8 data[1];
+    data[0]=0xaa;
+    FK_I2C_IO_SEND_API(0xaa,data,2);
+    
+    if (PFC_HART_LOOP_CURRENT_MODE==1)
+       PFC_CURRENT_LOCK=0;
+    else
+       PFC_CURRENT_LOCK=1;
+    PFC_ENTER_STOP_MODE_API();
+    
+}
+

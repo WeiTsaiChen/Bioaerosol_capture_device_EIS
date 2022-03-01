@@ -1,0 +1,1078 @@
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @file 	 fk_task.c
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/10/25
+//
+//  @brief 	 Task Subroutine
+//
+//**********************************************************************************************************************
+//**********************************************************************************************************************
+//
+// I N C L U D E   F I L E S   /   E X T E R N A L   V A R I A B L E S
+//
+//**********************************************************************************************************************
+#include "..\fk_udef.h"
+#include "fk_glb_vars.h"
+#include "..\drv_src\fk_drv.h"
+//**********************************************************************************************************************
+//
+// C   P L U S   P L U S   C O M P A T I A B L E   D E F I N I T I O N
+//
+//**********************************************************************************************************************
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_port_index
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/10/25
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    UINT8 fk_port_index(UINT32 port)
+    {
+        UINT8 i;
+        for (i=0; i<FK_PORT_TOTAL; i++)
+            if (port==(UINT32)gt_fk_port_index[i])
+                break;
+        return i;
+    }
+
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_pin_index
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/10/25
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    UINT8 fk_pin_index(UINT32 pin)
+    {
+        UINT8 i;
+        for (i=0; i<FK_PIN_TOTAL; i++)
+            if (pin==(UINT32)gt_fk_pin_index[i])
+                break;
+        return i;
+    }
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_set_io
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/10/25
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    void fk_set_io(UINT32 port,UINT32 pin,UINT32 speed,UINT32 mode)
+    {
+        GPIO_InitTypeDef  GPIO_InitStructure;
+        UINT8 port_index=fk_port_index(port);
+        RCC_APB2PeriphClockCmd(gt_fk_periph_register[port_index], ENABLE);
+        GPIO_InitStructure.GPIO_Pin = pin;
+        GPIO_InitStructure.GPIO_Mode = (GPIOMode_TypeDef)mode;
+        GPIO_InitStructure.GPIO_Speed = (GPIOSpeed_TypeDef)speed;
+        GPIO_Init((GPIO_TypeDef*)port, &GPIO_InitStructure);
+    }
+
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_get_crc
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/10/25
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    UINT32 fk_get_crc(UINT32 *data,UINT32 size)
+    {
+        UINT32 result;
+        FK_ENABLE_CRC_API();
+        CRC_ResetDR();
+        result=CRC_CalcBlockCRC(data,size);
+        FK_DISABLE_CRC_API();
+        return result;
+    }
+
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_set_io_interrupt
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/10/25
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    void fk_set_io_interrupt(UINT32 port,UINT32 pin,UINT32 mode,void(*func)(void),UINT32 enable)
+    {
+        GPIO_InitTypeDef GPIO_InitStructure;
+        EXTI_InitTypeDef EXTI_InitStructure;
+        UINT8 port_index=fk_port_index(port);
+        UINT8 pin_index=fk_pin_index(pin);
+        UINT8 priority;
+        priority=gt_fk_exti_priority[pin_index];
+
+        if (enable==(UINT32) ENABLE)
+        {
+            RCC_APB2PeriphClockCmd(gt_fk_periph_register[port_index]|RCC_APB2Periph_AFIO, ENABLE);
+
+            GPIO_InitStructure.GPIO_Pin = pin;
+            GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+            GPIO_Init((GPIO_TypeDef*)port, &GPIO_InitStructure);
+
+            GPIO_EXTILineConfig(gt_fk_portsource_register[port_index],gt_fk_pinsource_register[pin_index]);
+            gfunc_fk_exti_func[pin_index]=func;
+            EXTI_InitStructure.EXTI_Line = gt_fk_exti_line[pin_index];
+            EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+            EXTI_InitStructure.EXTI_Trigger = (EXTITrigger_TypeDef)mode;
+            EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+            EXTI_Init(&EXTI_InitStructure);
+        }
+        fk_nvic_enable(gt_fk_exti_irq_register[pin_index],priority,enable);
+        EXTI_ClearITPendingBit(gt_fk_exti_line[pin_index]);
+    }
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_set_io_interrupt
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/10/25
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    void fk_rtc_enable(UINT32 time)
+    {
+        RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR|RCC_APB1Periph_BKP, ENABLE);
+        PWR_BackupAccessCmd(ENABLE);
+        BKP_DeInit();
+#if MAIN_USE_LSE == 1
+        FK_TURN_ON_LSE_API();
+        RCC_RTCCLKConfig(RCC_RTCCLKSource_LSE);
+#endif
+#if MAIN_USE_LSI == 1
+        FK_TURN_ON_LSI_API();
+        RCC_RTCCLKConfig(RCC_RTCCLKSource_LSI);
+#endif
+        RCC_RTCCLKCmd(ENABLE);
+        RTC_WaitForSynchro();
+        RTC_WaitForLastTask();
+        RTC_SetPrescaler(FK_SUB_CLOCK/(MAIN_RTC_TIMING<<1)-1);
+        RTC_WaitForLastTask();
+        RTC_ITConfig(RTC_IT_ALR, ENABLE);
+        RTC_WaitForLastTask();
+
+        EXTI_InitTypeDef EXTI_InitStructure;
+        /* Configure EXTI Line17(RTC Alarm) to generate an interrupt on rising edge */
+        EXTI_ClearITPendingBit(EXTI_Line17);
+        EXTI_InitStructure.EXTI_Line = EXTI_Line17;
+        EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+        EXTI_InitStructure.EXTI_Trigger = FK_TRIGGER_RASING;
+        EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+        EXTI_Init(&EXTI_InitStructure);
+        fk_nvic_enable(RTCAlarm_IRQn,FK_RTC_ALARM_PRIORITY,ENABLE);
+        if (time)
+        {
+            RTC_SetCounter(time);
+            FK_BACKUP_WRITE_DATA_API(0,0xA5A5);
+        }
+        if (FK_BACKUP_READ_DATA_API(0)!=0xA5A5)
+        {
+            RTC_SetCounter(0);
+            FK_BACKUP_WRITE_DATA_API(0,0xA5A5);
+        }
+        RTC_WaitForLastTask();
+        RTC_SetAlarm(RTC_GetCounter()+ 1);
+        RTC_WaitForLastTask();
+    }
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_set_rtc_second_func
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/10/25
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    void fk_set_rtc_second_func(void(*func)(void))
+    {
+        gfunc_fk_rtc_func=func;
+        RTC_ITConfig(RTC_IT_SEC, ENABLE);
+        RTC_WaitForLastTask();
+        RTC_ClearITPendingBit(RTC_IT_SEC);
+        fk_nvic_enable(RTC_IRQn,FK_RTC_PRIORITY,ENABLE);
+    }
+
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_write_flash
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/10/25
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    UINT32 fk_write_flash(UINT32 page,UINT32 *buf,UINT32 size)
+    {
+        UINT32 addr=FK_M3_FLASH_START+(page*FK_FLASH_PAGE_SIZE);
+        UINT32 i,status;
+        FLASH_Unlock();
+        FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_WRPRTERR);
+        for (i=0; i<FK_NEED_PAGE; i++)
+        {
+            status=FLASH_ErasePage(addr+i*FK_FLASH_PAGE_SIZE);
+            if (status!=FLASH_COMPLETE)
+                return 0;
+        }
+
+        for (i=0; i<size; i+=sizeof(UINT32))
+        {
+            status=FLASH_ProgramWord(addr+i,*(buf+(i/sizeof(UINT32))));
+            if (status!=FLASH_COMPLETE)
+                return 0;
+        }
+        FLASH_Lock();
+        return 1;
+    }
+
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_write_flash
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/10/25
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    void fk_read_flash(UINT32 page,UINT32 *buf,UINT32 size)
+    {
+        UINT32 i;
+        UINT32 addr=FK_M3_FLASH_START+(page*FK_FLASH_PAGE_SIZE);
+        UINT32 *read=(UINT32*)addr;
+        for (i=0;i<size; i+=4,read++,buf++)
+            *buf=*read;
+    }
+
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_watchdog_enable
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/10/25
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    void fk_watchdog_enable()
+    {
+        IWDG_WriteAccessCmd(IWDG_WriteAccess_Enable);
+        IWDG_SetPrescaler(IWDG_Prescaler_64);
+        IWDG_SetReload(FK_IWATCH_DOG_TIME);
+        IWDG_ReloadCounter();
+        IWDG_Enable();
+    }
+
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_wwatchdog_enable
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/10/25
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    void fk_wwatchdog_enable()
+    {
+        RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
+        WWDG_SetPrescaler(WWDG_Prescaler_8);
+        WWDG_SetWindowValue(FK_WWATCH_DOG_RESET_VALUE);
+        WWDG_Enable(FK_WWATCH_DOG_RESET_VALUE);
+        WWDG_ClearFlag();
+        WWDG_EnableIT();
+    }
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_speed_up
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/10/25
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    void fk_speed_up()
+    {
+        if(PWR_GetFlagStatus(PWR_FLAG_WU) != RESET)
+        {
+#if MAIN_USE_HSE == 1
+            FK_TURN_ON_HSE_API();
+#endif
+#if MAIN_USE_HSI == 1
+            FK_TURN_ON_HSI_API();
+#endif
+#if MAIN_USE_64PINS_MCU == 1
+	    FK_PREDIV1_CONFIG_API();    
+#endif
+	    FK_PLL_CONFIG_API();
+            FK_ENABLE_PLL_API();
+            FK_SET_SYSCLOCK_SOURCE_API();
+        }
+    }
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_enter_stop_mode
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/10/25
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+  void fk_enter_stop_mode()
+  {
+        UINT32 *ptr=(UINT32*)&gs_fk_interrupt_list;
+        FK_RELOAD_IWATCHDOG_API();
+        if (*ptr==0)
+        {
+#if MAIN_LOW_POWER_MODE == 1
+            PWR_EnterSTOPMode(PWR_Regulator_LowPower, PWR_STOPEntry_WFI);
+#endif
+#if MAIN_ENTER_SLEEP_MODE == 1
+            FK_ENTER_SLEEP_MODE_API();
+#endif
+        }
+        FK_RELOAD_IWATCHDOG_API();
+  }
+
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_dma_enable
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/10/25
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    void fk_dma_enable(UINT8 channel,UINT32 *source,UINT32 *dest,UINT32 size,void(*func)(void))
+    {
+        DMA_InitTypeDef  DMA_InitStructure;
+
+        if (channel<=7)
+            RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
+        else
+            RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA2, ENABLE);
+
+        fk_nvic_enable(gt_fk_dma_irq_register[channel],gt_fk_dma_priority[channel],ENABLE);
+        DMA_DeInit((DMA_Channel_TypeDef *)gt_fk_dma_channel_register[channel]);
+        DMA_InitStructure.DMA_PeripheralBaseAddr = (UINT32)source;
+        DMA_InitStructure.DMA_MemoryBaseAddr = (UINT32)dest;
+        DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
+        DMA_InitStructure.DMA_BufferSize = size;
+        DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Enable;
+        DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+        DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;
+        DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Word;
+        DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
+        DMA_InitStructure.DMA_Priority = DMA_Priority_High;
+        DMA_InitStructure.DMA_M2M = DMA_M2M_Enable;
+        DMA_Init((DMA_Channel_TypeDef *)gt_fk_dma_channel_register[channel], &DMA_InitStructure);
+        *((UINT16*)&gs_fk_interrupt_list)|=((0x01)<<(channel));
+        gfunc_fk_dma_func[channel]=func;
+        DMA_ITConfig((DMA_Channel_TypeDef *)gt_fk_dma_channel_register[channel], DMA_IT_TC, ENABLE);
+        DMA_Cmd((DMA_Channel_TypeDef *)gt_fk_dma_channel_register[channel], ENABLE);
+
+    }
+
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_nvic_enable
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/10/25
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    void fk_nvic_enable(UINT32 irq_channel,UINT32 priority,UINT32 enable)
+    {
+        NVIC_InitTypeDef NVIC_InitStructure;
+        NVIC_InitStructure.NVIC_IRQChannel = irq_channel;
+        NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = priority%16;   
+        NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;          
+        NVIC_InitStructure.NVIC_IRQChannelCmd = (FunctionalState)enable;
+        NVIC_Init(&NVIC_InitStructure);
+    }
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_nvic_disable
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/10/25
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    void fk_nvic_disable(UINT32 irq_channel)
+    {
+        NVIC_InitTypeDef NVIC_InitStructure;
+        NVIC_InitStructure.NVIC_IRQChannel = irq_channel;
+        NVIC_InitStructure.NVIC_IRQChannelCmd = DISABLE;
+        NVIC_Init(&NVIC_InitStructure);
+    }
+
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_timer_enable
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/10/25
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    void fk_timer_interrupt_enable(UINT8 timer,UINT32 prescale,UINT32 count,void(*func)(void))
+    {
+        TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+        gfunc_fk_timer_interrupt[timer]=func;
+        RCC_APB1PeriphClockCmd(gt_fk_timer_periph_register[timer], ENABLE);
+        TIM_TimeBaseStructure.TIM_Period = count-1;
+        TIM_TimeBaseStructure.TIM_Prescaler = prescale-1;
+        TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+        TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Down;
+        TIM_TimeBaseInit((TIM_TypeDef *)gt_fk_timer_register[timer], &TIM_TimeBaseStructure);
+        TIM_PrescalerConfig((TIM_TypeDef *)gt_fk_timer_register[timer], prescale, TIM_PSCReloadMode_Immediate);
+        fk_nvic_enable(gt_fk_timer_irq[timer],gt_fk_timer_priority[timer],ENABLE);
+        TIM_ClearFlag((TIM_TypeDef *)gt_fk_timer_register[timer], TIM_FLAG_Update);
+        TIM_ITConfig((TIM_TypeDef *)gt_fk_timer_register[timer], TIM_IT_Update,ENABLE);
+        TIM_Cmd((TIM_TypeDef *)gt_fk_timer_register[timer], ENABLE);
+    }
+
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_timer_capture_enable
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/10/25
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    void fk_timer_capture_enable(UINT8 timer,UINT16 channel,UINT32 port,UINT32 pin,UINT16 edge,void(*func)(void))
+    {
+        GPIO_InitTypeDef GPIO_InitStructure;
+        TIM_ICInitTypeDef  TIM_ICInitStructure;
+        UINT8 port_index=fk_port_index(port);
+        UINT8 pin_index=fk_pin_index(pin);
+        gfunc_fk_timer_interrupt[timer]=func;
+        gb_fk_capture_compare_timer=timer;
+        gb_fk_capture_compare_channel=channel;
+
+        RCC_APB2PeriphClockCmd(gt_fk_timer_periph_register[timer], ENABLE);
+        RCC_APB2PeriphClockCmd(gt_fk_periph_register[port_index], ENABLE);
+        GPIO_InitStructure.GPIO_Pin = pin;
+        GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+        GPIO_InitStructure.GPIO_Speed= GPIO_Speed_50MHz;
+        GPIO_Init((GPIO_TypeDef*)port, &GPIO_InitStructure);
+
+        fk_nvic_enable(gt_fk_timer_irq[timer],FK_TAMPER_PRIORITY,ENABLE);
+
+        switch (channel)
+        {
+        case FK_TIMER_CHANNEL1:
+            TIM_ICInitStructure.TIM_Channel = TIM_Channel_1;
+            break;
+        case FK_TIMER_CHANNEL2:
+            TIM_ICInitStructure.TIM_Channel = TIM_Channel_2;
+            break;
+        case FK_TIMER_CHANNEL3:
+            TIM_ICInitStructure.TIM_Channel = TIM_Channel_3;
+            break;
+        case FK_TIMER_CHANNEL4:
+            TIM_ICInitStructure.TIM_Channel = TIM_Channel_4;
+            break;
+        }
+
+        TIM_ICInitStructure.TIM_ICPolarity = edge;
+        TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI;
+        TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV1;
+        TIM_ICInitStructure.TIM_ICFilter = 0x0;
+        TIM_ICInit((TIM_TypeDef*)gt_fk_timer_register[timer], &TIM_ICInitStructure);
+        TIM_Cmd((TIM_TypeDef*)gt_fk_timer_register[timer], ENABLE);
+
+        switch (channel)
+        {
+        case FK_TIMER_CHANNEL1:
+            TIM_ITConfig((TIM_TypeDef*)gt_fk_timer_register[timer], TIM_IT_CC1, ENABLE);
+            break;
+        case FK_TIMER_CHANNEL2:
+            TIM_ITConfig((TIM_TypeDef*)gt_fk_timer_register[timer], TIM_IT_CC2, ENABLE);
+            break;
+        case FK_TIMER_CHANNEL3:
+            TIM_ITConfig((TIM_TypeDef*)gt_fk_timer_register[timer], TIM_IT_CC3, ENABLE);
+            break;
+        case FK_TIMER_CHANNEL4:
+            TIM_ITConfig((TIM_TypeDef*)gt_fk_timer_register[timer], TIM_IT_CC4, ENABLE);
+            break;
+        }
+    }
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_timer_enable
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/10/25
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    void fk_uart_init(UINT8 comport,UINT16 baudrate,UINT16 bits,UINT16 stop_bits,UINT16 parity,UINT8 mode,UINT8(*tx_func)(void),void(*rx_func)(void))
+    {
+        GPIO_InitTypeDef  GPIO_InitStructure;
+        USART_InitTypeDef USART_InitStructure;
+        UINT32 port=gt_fk_uart_port_register[comport];
+        UINT32 tx_pin=gt_fk_uart_tx_pin_register[comport];
+        UINT32 rx_pin=gt_fk_uart_rx_pin_register[comport];
+        UINT8 port_index=fk_port_index(port);
+        UINT8 tx_pin_index=fk_pin_index(tx_pin);
+        UINT8 rx_pin_index=fk_pin_index(rx_pin);
+
+        RCC_APB2PeriphClockCmd(gt_fk_periph_register[port_index]|RCC_APB2Periph_AFIO, ENABLE);
+
+        if (comport>=FK_UART2_DEFAULT)
+            RCC_APB1PeriphClockCmd(gt_fk_uart_periph_register[comport], ENABLE);
+        else
+            RCC_APB2PeriphClockCmd(gt_fk_uart_periph_register[comport], ENABLE);
+
+        if (comport%2)
+            GPIO_PinRemapConfig(gt_fk_uart_remap_register[comport/2], ENABLE);
+
+        GPIO_InitStructure.GPIO_Pin = rx_pin;
+        GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+        GPIO_Init((GPIO_TypeDef*)port, &GPIO_InitStructure);
+
+        GPIO_InitStructure.GPIO_Pin = tx_pin;
+        GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+        GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+        GPIO_Init((GPIO_TypeDef*)port, &GPIO_InitStructure);
+
+        USART_InitStructure.USART_BaudRate = baudrate;
+        USART_InitStructure.USART_WordLength = bits;
+        USART_InitStructure.USART_StopBits = stop_bits;
+        USART_InitStructure.USART_Parity = parity;
+        USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+        USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+        USART_Init((USART_TypeDef*)gt_fk_uart_name[comport], &USART_InitStructure);
+
+        if (mode==FK_UART_INTERRUPT_MODE)
+        {
+            gfunc_fk_uart_tx_func[comport/2]=tx_func;
+            gfunc_fk_uart_rx_func[comport/2]=rx_func;
+            fk_nvic_enable(gt_fk_uart_irq_register[comport/2],gt_fk_uart_priority[comport/2],ENABLE);
+            USART_ITConfig((USART_TypeDef*)gt_fk_uart_name[comport], USART_IT_RXNE, ENABLE);
+        }
+
+        USART_Cmd((USART_TypeDef*)gt_fk_uart_name[comport], ENABLE);
+    }
+
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_adc_functions
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/10/25
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    void fk_adc_functions(UINT8 set,UINT8 channel,UINT8 dma_channel,UINT8 func_index,UINT8 func_mode,void (*func)(void),UINT16 *buf,UINT32 size)
+    {
+        GPIO_InitTypeDef GPIO_InitStructure;
+        ADC_InitTypeDef ADC_InitStructure;
+        UINT32 port=(UINT32)gt_fk_adc_port[channel];
+        UINT8 pin=gt_fk_adc_pin[channel];
+        UINT8 port_index=fk_port_index(port);
+        UINT8 pin_index=fk_pin_index(pin);
+        UINT8 channel2,port2_index;
+        UINT32 port2;
+
+        RCC_ADCCLKConfig(RCC_PCLK2_Div4);
+        RCC_APB2PeriphClockCmd(gt_fk_periph_register[port_index]|gt_fk_adc_register[set],ENABLE);
+        GPIO_InitStructure.GPIO_Pin = pin;
+        GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
+        GPIO_Init((GPIO_TypeDef*)port, &GPIO_InitStructure);
+
+        if (func_index==FK_ADC_DUAL_DMA_FUNC)
+        {
+            port2=(UINT32)gt_fk_adc_port[dma_channel];
+            port2_index=fk_port_index(port2);
+            channel2=dma_channel;
+            dma_channel=FK_DMA_CHANNEL1;
+            RCC_APB2PeriphClockCmd(gt_fk_periph_register[port2_index],ENABLE);
+            GPIO_InitStructure.GPIO_Pin = gt_fk_adc_pin[channel2];
+            GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
+            GPIO_Init((GPIO_TypeDef*)port2, &GPIO_InitStructure);
+        }
+
+        if (func_index==FK_ADC_INTERRUPT_FUNC)
+            fk_nvic_enable(ADC1_2_IRQn,FK_ADC1_2_PRIORITY,ENABLE);
+
+        ADC_InitStructure.ADC_Mode = ADC_Mode_Independent;
+        ADC_InitStructure.ADC_ScanConvMode = ENABLE;
+        if (func_mode==FK_ADC_SINGLE_MODE)
+            ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;
+        else
+            ADC_InitStructure.ADC_ContinuousConvMode = ENABLE;
+
+        ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;
+        ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
+        ADC_InitStructure.ADC_NbrOfChannel = 1;
+
+        if (func_index==FK_ADC_DMA_FUNC || func_index==FK_ADC_DUAL_DMA_FUNC)
+        {
+            DMA_InitTypeDef DMA_InitStructure;
+            if (dma_channel<=7)
+                RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
+            else
+                RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA2, ENABLE);
+            fk_nvic_enable(gt_fk_dma_irq_register[dma_channel],gt_fk_dma_priority[dma_channel],ENABLE);
+
+            DMA_DeInit((DMA_Channel_TypeDef *)gt_fk_dma_channel_register[dma_channel]);
+            DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&(((ADC_TypeDef*)gt_fk_adc_register[set+FK_ADC_SET_TOTAL])->DR);
+            DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)buf;
+            DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
+            DMA_InitStructure.DMA_BufferSize = size;
+            DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+            DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+            DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
+            DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
+            DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
+            DMA_InitStructure.DMA_Priority = DMA_Priority_High;
+            DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
+            DMA_Init((DMA_Channel_TypeDef *)gt_fk_dma_channel_register[dma_channel],&DMA_InitStructure);
+            *((UINT16*)&gs_fk_interrupt_list)|=((0x01)<<(dma_channel));
+            DMA_ITConfig((DMA_Channel_TypeDef *)gt_fk_dma_channel_register[dma_channel], DMA_IT_TC, ENABLE);
+            DMA_Cmd((DMA_Channel_TypeDef *)gt_fk_dma_channel_register[dma_channel], ENABLE);
+            if (func_index==FK_ADC_DUAL_DMA_FUNC)
+            {
+                ADC_InitStructure.ADC_Mode = ADC_Mode_RegSimult;
+                ADC_InitStructure.ADC_ScanConvMode = ENABLE;
+                ADC_InitStructure.ADC_NbrOfChannel = 2;
+            }
+            ADC_InitStructure.ADC_ScanConvMode = ENABLE;
+            ADC_DMACmd((ADC_TypeDef*)gt_fk_adc_register[set+FK_ADC_SET_TOTAL], ENABLE);
+            gfunc_fk_dma_func[dma_channel]=func;
+        }
+
+        ADC_Init((ADC_TypeDef*)gt_fk_adc_register[set+FK_ADC_SET_TOTAL], &ADC_InitStructure);
+        ADC_RegularChannelConfig((ADC_TypeDef*)gt_fk_adc_register[set+FK_ADC_SET_TOTAL], channel, 1, ADC_SampleTime_1Cycles5);
+        if (func_index==FK_ADC_DUAL_DMA_FUNC)
+            ADC_RegularChannelConfig((ADC_TypeDef*)gt_fk_adc_register[set+FK_ADC_SET_TOTAL], channel2, 2, ADC_SampleTime_1Cycles5);
+        ADC_ITConfig((ADC_TypeDef*)gt_fk_adc_register[set+FK_ADC_SET_TOTAL], ADC_IT_EOC, ENABLE);
+        ADC_Cmd((ADC_TypeDef*)gt_fk_adc_register[set+FK_ADC_SET_TOTAL], ENABLE);
+        ADC_ResetCalibration((ADC_TypeDef*)gt_fk_adc_register[set+FK_ADC_SET_TOTAL]);
+        while(ADC_GetResetCalibrationStatus((ADC_TypeDef*)gt_fk_adc_register[set+FK_ADC_SET_TOTAL]));
+        ADC_StartCalibration((ADC_TypeDef*)gt_fk_adc_register[set+FK_ADC_SET_TOTAL]);
+        while(ADC_GetCalibrationStatus((ADC_TypeDef*)gt_fk_adc_register[set+FK_ADC_SET_TOTAL]));
+        ADC_SoftwareStartConvCmd((ADC_TypeDef*)gt_fk_adc_register[set+FK_ADC_SET_TOTAL], ENABLE);
+        gfunc_fk_adc_func=func;
+    }
+
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_adc_polling
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/10/25
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    UINT16 fk_adc_polling(UINT8 set)
+    {
+        ADC_SoftwareStartConvCmd((ADC_TypeDef*)gt_fk_adc_register[set+FK_ADC_SET_TOTAL], ENABLE);
+        while ((ADC_GetFlagStatus((ADC_TypeDef*)gt_fk_adc_register[set+FK_ADC_SET_TOTAL],ADC_FLAG_EOC)==RESET));
+        ADC_ClearFlag((ADC_TypeDef*)gt_fk_adc_register[set+FK_ADC_SET_TOTAL],ADC_FLAG_EOC);
+        return ADC_GetConversionValue((ADC_TypeDef*)gt_fk_adc_register[set+FK_ADC_SET_TOTAL]);
+    }
+
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_set_dac
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/10/25
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    void fk_set_dac(UINT8 channel,UINT32 port,UINT32 pin)
+    {
+        DAC_InitTypeDef DAC_InitStructure;
+        fk_set_io(port,pin,FK_GPIO_SPEED,GPIO_Mode_AIN);
+        RCC_APB1PeriphClockCmd(RCC_APB1Periph_DAC, ENABLE);
+        DAC_InitStructure.DAC_Trigger = DAC_Trigger_None;
+        DAC_InitStructure.DAC_WaveGeneration = DAC_WaveGeneration_None;
+        DAC_InitStructure.DAC_LFSRUnmask_TriangleAmplitude = DAC_LFSRUnmask_Bits11_0;
+        DAC_InitStructure.DAC_OutputBuffer = DAC_OutputBuffer_Enable;
+        DAC_Init(gt_fk_dac_register[channel], &DAC_InitStructure);
+        DAC_Cmd(gt_fk_dac_register[channel], ENABLE);
+    }
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_i2c_init
+//
+//! @author 	 Vic Chen
+//
+//! @date 	 2010/11/16
+//
+//! @brief 	I2C INIT function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    void fk_i2c_init(UINT8 channel,UINT32 speed)
+    {
+        GPIO_InitTypeDef GPIO_Initstructure;
+        I2C_InitTypeDef I2C_Initstructure;
+
+        //RCC config
+        if(channel == FK_I2C_TOTAL)
+        {
+            RCC_APB1PeriphClockCmd(gt_fk_i2c_periph[FK_I2C1],ENABLE);
+            RCC_APB1PeriphClockCmd(gt_fk_i2c_periph[FK_I2C2],ENABLE);
+            //define GPIO SCL and SDA
+            GPIO_Initstructure.GPIO_Pin = gt_fk_i2c_pin[FK_I2C1]|gt_fk_i2c_pin[FK_I2C1+2];
+            GPIO_Initstructure.GPIO_Speed = GPIO_Speed_50MHz;
+            GPIO_Initstructure.GPIO_Mode = GPIO_Mode_AF_OD;
+            GPIO_Init((GPIO_TypeDef*)gt_fk_i2c_port[FK_I2C1],&GPIO_Initstructure);
+            GPIO_Initstructure.GPIO_Pin = gt_fk_i2c_pin[FK_I2C2]|gt_fk_i2c_pin[FK_I2C2+2];
+            GPIO_Init((GPIO_TypeDef*)gt_fk_i2c_port[FK_I2C2],&GPIO_Initstructure);
+
+            //I2C Init
+            I2C_Initstructure.I2C_Mode = I2C_Mode_I2C;
+            I2C_Initstructure.I2C_DutyCycle = I2C_DutyCycle_2;
+            I2C_Initstructure.I2C_Ack = I2C_Ack_Enable;
+            I2C_Initstructure.I2C_OwnAddress1 = 0;
+            I2C_Initstructure.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
+            I2C_Initstructure.I2C_ClockSpeed = speed;
+            I2C_Init((I2C_TypeDef*)gt_fk_i2c_register[FK_I2C1], &I2C_Initstructure);
+            I2C_Cmd((I2C_TypeDef*)gt_fk_i2c_register[FK_I2C1],ENABLE);
+            I2C_Init((I2C_TypeDef*)gt_fk_i2c_register[FK_I2C2], &I2C_Initstructure);
+            I2C_Cmd((I2C_TypeDef*)gt_fk_i2c_register[FK_I2C2],ENABLE);
+        }
+        else
+        {
+            RCC_APB1PeriphClockCmd(gt_fk_i2c_periph[channel],ENABLE);
+
+            RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB,ENABLE);
+
+            //define GPIO SCL and SDA
+            GPIO_Initstructure.GPIO_Pin = gt_fk_i2c_pin[channel]|gt_fk_i2c_pin[channel+2];
+            GPIO_Initstructure.GPIO_Speed = GPIO_Speed_50MHz;
+            GPIO_Initstructure.GPIO_Mode = GPIO_Mode_AF_OD;
+            GPIO_Init((GPIO_TypeDef*)gt_fk_i2c_port[channel],&GPIO_Initstructure);
+
+            //I2C Init
+            I2C_Initstructure.I2C_Mode = I2C_Mode_I2C;
+            I2C_Initstructure.I2C_DutyCycle = I2C_DutyCycle_16_9;
+            I2C_Initstructure.I2C_Ack = I2C_Ack_Enable;
+            I2C_Initstructure.I2C_OwnAddress1 = 0;
+            I2C_Initstructure.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
+            I2C_Initstructure.I2C_ClockSpeed = speed;
+            I2C_Init((I2C_TypeDef*)gt_fk_i2c_register[channel], &I2C_Initstructure);
+            I2C_Cmd((I2C_TypeDef*)gt_fk_i2c_register[channel],ENABLE);
+        }
+    }
+
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_spi_init
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/12/20
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    void fk_spi_init(UINT8 set,UINT8 dma,UINT8 *buf,UINT32 len)
+    {
+      UINT32 i;
+      SPI_InitTypeDef  SPI_InitStructure;
+      GPIO_InitTypeDef GPIO_InitStructure;
+      GPIO_InitStructure.GPIO_Pin = gt_fk_spi_pins[set*3] | gt_fk_spi_pins[set*3+1];
+      GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+      GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+      GPIO_Init((GPIO_TypeDef*)gt_fk_spi_port[set], &GPIO_InitStructure);
+
+      RCC_APB2PeriphClockCmd(gt_fk_spi_gpio_clock[set]|RCC_APB2Periph_AFIO, ENABLE);
+      if (set==FK_SPI1)
+        RCC_APB2PeriphClockCmd(gt_fk_spi_periph[set], ENABLE);
+      else
+        RCC_APB1PeriphClockCmd(gt_fk_spi_periph[set], ENABLE);
+
+      SPI_InitStructure.SPI_Direction = SPI_Direction_1Line_Tx;
+      SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
+      SPI_InitStructure.SPI_DataSize = SPI_DataSize_8b;
+      SPI_InitStructure.SPI_CPOL = SPI_CPOL_High;
+      SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge;
+      SPI_InitStructure.SPI_NSS = SPI_NSS_Hard;
+      SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2;
+      SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
+      SPI_InitStructure.SPI_CRCPolynomial = 7;
+      SPI_Init((SPI_TypeDef *)gt_fk_spi_register[set], &SPI_InitStructure);
+      SPI_Cmd((SPI_TypeDef *)gt_fk_spi_register[set], ENABLE);
+      if (dma!=FK_DMA_CHANNEL_TOTAL)
+      {
+        if (dma<=7)
+            RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
+        else
+            RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA2, ENABLE);
+
+        DMA_InitTypeDef  DMA_InitStructure;
+        DMA_DeInit((DMA_Channel_TypeDef *)gt_fk_dma_channel_register[dma]);
+        DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&((SPI_TypeDef *)gt_fk_spi_register[set])->DR;
+        DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)buf;
+        DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
+        DMA_InitStructure.DMA_BufferSize = len;
+        DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+        DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+        DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
+        DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
+        DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
+        DMA_InitStructure.DMA_Priority = DMA_Priority_VeryHigh;
+        DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
+        DMA_Init((DMA_Channel_TypeDef *)gt_fk_dma_channel_register[dma], &DMA_InitStructure);
+        SPI_I2S_DMACmd((SPI_TypeDef *)gt_fk_spi_register[set], SPI_I2S_DMAReq_Tx, ENABLE);
+        DMA_Cmd((DMA_Channel_TypeDef *)gt_fk_dma_channel_register[dma], ENABLE);
+        if(set==FK_SPI1)
+          while (DMA_GetFlagStatus(DMA1_FLAG_TC3) == RESET);
+        else
+          while (DMA_GetFlagStatus(DMA1_FLAG_TC5) == RESET);
+      }
+      else
+      {
+        for (i=0;i<len;i++)
+        {
+          while (SPI_I2S_GetFlagStatus((SPI_TypeDef *)gt_fk_spi_register[set], SPI_I2S_FLAG_TXE) == RESET);
+          SPI_I2S_SendData((SPI_TypeDef *)gt_fk_spi_register[set], *(buf+i));
+        }
+      }
+    }
+//**********************************************************************************************************************
+//
+// Copyright (C) 2010, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 	 fk_pvd_enable
+//
+//! @author 	 Willman Chen
+//
+//! @date 	 2010/12/20
+//
+//! @brief 	 task function
+//
+//! @param	 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+    void fk_pvd_enable(UINT32 voltage,void(*func)(void))
+    {
+      gfunc_fk_pvd_func=func;
+      EXTI_InitTypeDef EXTI_InitStructure;
+      EXTI_ClearITPendingBit(EXTI_Line17);
+      EXTI_InitStructure.EXTI_Line = EXTI_Line17;
+      EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+      EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
+      EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+      EXTI_Init(&EXTI_InitStructure); 
+      fk_nvic_enable(PVD_IRQn,FK_PVD_PRIORITY,ENABLE);
+      PWR_PVDLevelConfig(voltage);    
+      PWR_PVDCmd(ENABLE);
+    }
+#ifdef __cplusplus
+}
+#endif
+

@@ -1,0 +1,62 @@
+//**********************************************************************************************************************
+//
+// Copyright (C) 2009, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @file 		 modbus_slave_init.c
+//
+//! @author 	 Willman Chen
+//
+//! @date 		 2009/11/10
+//
+//  @brief 		 Initial Subroutine
+//
+//**********************************************************************************************************************
+//**********************************************************************************************************************
+//
+// I N C L U D E   F I L E S   /   E X T E R N A L   V A R I A B L E S
+//
+//**********************************************************************************************************************
+#include "../drv_src/modbus_slave_drv.h"
+#include "modbus_slave_glb_vars.h"
+//**********************************************************************************************************************
+//
+// Copyright (C) 2009, FINE-TEK CO.,LTD. Taiwan  All Rights Reserved
+//
+//! @fn 			 modbus_slave_init
+//
+//! @author 	 Willman Chen
+//
+//! @date 		 2009/11/10
+//
+//! @brief 		 initial function
+//
+//! @param 		 None
+//
+//! @return 	 None
+//
+//**********************************************************************************************************************
+void modbus_slave_init()
+{
+    switch (MODBUS_SLAVE_BAUDRATE)
+    {
+      case 1200:
+        gb_modbus_slave_reset_value=32;
+        break;
+      case 2400:
+        gb_modbus_slave_reset_value=16;
+        break;
+      case 4800:
+        gb_modbus_slave_reset_value=8;
+        break;
+      case 9600:
+        gb_modbus_slave_reset_value=4;
+        break;
+      case 38400:
+      case 57600:
+      case 19200:
+        gb_modbus_slave_reset_value=3;
+        break;
+    }
+    modbus_slave_sfr_init();
+    modbus_slave_glb_vars_init();
+}
